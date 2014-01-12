@@ -221,7 +221,7 @@ with_jquery(function ($) {
                 <div class="default-close-reasons" style="margin-bottom: 40px;"></div>\
                 <h2 style="display: inline-block;">Custom Off-Topic Close Reasons</h2>\
                 <p style="color: #999">With great responsibility comes great power. Now it\'s your turn to edit these close reasons.</p>\
-                <div class="custom-close-reasons" style="margin-bottom: 40px;"></div>\
+                <div class="custom-close-reasons"></div>\
                 <div class="form-submit">\
                     <input id="add-custom-reason" type="submit" value="Add Custom Reason">\
                 </div>\
