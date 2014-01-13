@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.0.0
+// @version          1.0.1
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -85,7 +85,7 @@ with_jquery(function ($) {
                 var items = CloseReasonEditor.fetch()['custom'];
                 for (var i = 0; i < items.length; i++) {
                     var listItem = CloseReasonEditor.getListItem(otherListItemValue, items[i].html, items[i].markdown);
-                    if (otherListItem.length) {
+                    if (otherListItem.parent().length) {
                         listItem.insertBefore(otherListItem);
                     } else {
                         element.find("div.close-as-off-topic-pane ul.action-list").append(listItem);
@@ -94,10 +94,10 @@ with_jquery(function ($) {
             }
             element.find("div.close-as-off-topic-pane ul.action-list li").on("click", function() {
                 if ($(this).data("markdown")) {
-                    $(this).find("div.off-topic-other-comment-container").html('<textarea>' + $(this).data("markdown") + '</textarea>');
+                    $(this).find("div.off-topic-other-comment-container").append('<textarea>' + $(this).data("markdown") + '</textarea>');
                 }
                 $(this).siblings().each(function() {
-                    if ($(this).find("textarea").length && !$(this).find("input[name='original_text']").length) {
+                    if ($(this).find("textarea").length && !$(this).find("span.text-counter").length) {
                         $(this).find("textarea").remove();
                     }
                 });
@@ -105,10 +105,12 @@ with_jquery(function ($) {
             var button = $('<a href="javascript:void(0)" style="margin-top: 20px; font-size: 11px;">edit these reasons</a>').on("click", function (event) {
                 event.preventDefault();
                 location.href = CloseReasonEditor.pageURL;
-            });
-            if (element.html().indexOf("edit these reasons") === -1) {
-                element.find("div.close-as-off-topic-pane").append(button);
+            }).wrap('<div></div>').parent();
+            if (element.html().indexOf("edit these reasons") !== -1) {
+                // In case a moderator installs this userscript
+                button.html('edit these reasons with userscript');
             }
+            element.find("div.close-as-off-topic-pane").append(button);
         },
         showPage: function () {
             var html = $("html").clone(true, true);
@@ -273,7 +275,9 @@ with_jquery(function ($) {
                     <input type="radio" name="close-as-off-topic-reason" value="' + value + '" data-subpane-name="" data-other-comment-id="">\
                     <span class="action-name">' + html + '</span>\
                 </label>\
-                <div class="off-topic-other-comment-container"></div>\
+                <div class="off-topic-other-comment-container">\
+                    <input type="hidden" name="original_text" value="This question appears to be off-topic because it is about">\
+                </div>\
             </li>\
             ').data("markdown", markdown).on("click", function(event) {
                 event.preventDefault();
