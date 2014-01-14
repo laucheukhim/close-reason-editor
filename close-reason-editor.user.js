@@ -58,7 +58,7 @@ with_jquery(function ($) {
                 hot: 380
             },
             url: {
-                script: 'http://laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js?' + Date.now(),
+                script: 'http://laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js',
                 editPage: location.protocol + '//' + location.host + '/?edit-close-reasons',
                 privileges: '/help/privileges',
                 closePrivilege: '/help/privileges/close-questions'
@@ -680,7 +680,7 @@ with_jquery(function ($) {
                 check: function (upToDateCallback, needsUpdateCallback) {
                     CloseReasonEditor.utility.version.upToDateCallback = upToDateCallback;
                     CloseReasonEditor.utility.version.needsUpdateCallback = needsUpdateCallback;
-                    $.getScript(CloseReasonEditor.param.url.script);
+                    $.getScript(CloseReasonEditor.param.url.script + '?' + Date.now());
                 },
                 compare: function (latestVersion) {
                     if (latestVersion > CloseReasonEditor.param.version) {
