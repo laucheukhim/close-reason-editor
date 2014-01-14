@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.0.4
+// @version          1.0.5
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -37,9 +37,10 @@ with_jquery(function ($) {
             Markdown.Converter();
         });
     }
-    window.CloseReasonEditor = {
+    var CloseReasonEditor = {
         param: {
             name: 'se-close-reason-editor',
+            version: '1.0.5',
             site: location.host,
             siteName: (function() {
                 var siteName = document.title;
@@ -57,7 +58,8 @@ with_jquery(function ($) {
                 hot: 380
             },
             url: {
-                page: location.protocol + '//' + location.host + '/?edit-close-reasons',
+                script: 'http://laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js',
+                editPage: location.protocol + '//' + location.host + '/?edit-close-reasons',
                 privileges: '/help/privileges',
                 closePrivilege: '/help/privileges/close-questions'
             },
@@ -66,8 +68,11 @@ with_jquery(function ($) {
             }
         },
         init: function () {
-            if (location.href === CloseReasonEditor.param.url.page) {
-                CloseReasonEditor.page.init();
+            CloseReasonEditor.compatibility.init();
+            switch (location.href) {
+                case CloseReasonEditor.param.url.editPage:
+                    CloseReasonEditor.page.init('edit');
+                    break;
             }
             $(document).ajaxSuccess(function (event, xhr, settings) {
                 try {
@@ -130,23 +135,23 @@ with_jquery(function ($) {
                     </div>\
                 </li>\
                 ').data("markdown", markdown).on("click", function(event) {
-                    event.preventDefault();
-                    $(this).find("input[type='radio']").prop("checked", true);
-                    $(this).parents("ul").first().find(".action-selected").removeClass("action-selected");
-                    $(this).addClass("action-selected");
-                    $("#popup-close-question").find("input[type='submit']").prop("disabled", false).removeClass("disabled-button").css("cursor", "");
-                });
+                        event.preventDefault();
+                        $(this).find("input[type='radio']").prop("checked", true);
+                        $(this).parents("ul").first().find(".action-selected").removeClass("action-selected");
+                        $(this).addClass("action-selected");
+                        $("#popup-close-question").find("input[type='submit']").prop("disabled", false).removeClass("disabled-button").css("cursor", "");
+                    });
             },
             getButton: function (name) {
                 return $('<a href="javascript:void(0)" style="margin-top: 20px; font-size: 11px;">' + name + '</a>').on("click", function (event) {
                     event.preventDefault();
-                    location.href = CloseReasonEditor.param.url.page;
+                    location.href = CloseReasonEditor.param.url.editPage;
                 }).wrap('<div></div>').parent();
             }
         },
         page: {
             html: $(),
-            init: function () {
+            init: function (pageType) {
                 CloseReasonEditor.page.html = $("html").clone(true, true);
                 $("#content").html(CloseReasonEditor.page.template.getLoading());
                 try {
@@ -154,36 +159,15 @@ with_jquery(function ($) {
                         CloseReasonEditor.page.getCloseDialog(function (closeDialog) {
                             // Set original text value
                             CloseReasonEditor.param.reason.originalTextValue = CloseReasonEditor.parse.otherTextarea(closeDialog).originalTextValue;
-                            // Set title
-                            document.title = 'Manage Off-Topic Close Reasons - ' + CloseReasonEditor.param.siteName;
-                            // Set content template
-                            $("#content").html(CloseReasonEditor.page.template.getPage());
-                            // Set default reasons
-                            CloseReasonEditor.parse.closeDialog(closeDialog, function (reason) {
-                                var item = CloseReasonEditor.reason.getDefault(reason);
-                                if (!item) {
-                                    CloseReasonEditor.reason.setDefault(reason, true);
-                                    item = CloseReasonEditor.reason.getDefault(reason);
-                                }
-                                reason = CloseReasonEditor.page.reason.getActivatable(reason, item.active);
-                                $("div.default-close-reasons").append(reason);
-                            });
-                            CloseReasonEditor.page.defaultActiveCount.update();
-                            // Set custom reasons
-                            var items = CloseReasonEditor.data.fetch()['custom'];
-                            for (var i = 0; i < items.length; i++) {
-                                $("div.custom-close-reasons").append(CloseReasonEditor.page.reason.getEditable(items[i].html));
+                            switch (pageType) {
+                                case 'edit':
+                                    CloseReasonEditor.page.render.edit(closeDialog);
+                                    break;
                             }
-                            // Add custom reason button
-                            $("#add-custom-reason").on("click", function () {
-                                $("div.custom-close-reasons").append(CloseReasonEditor.page.reason.getDisposableTextarea(CloseReasonEditor.param.reason.originalTextValue));
-                            });
+                            CloseReasonEditor.utility.version.check(CloseReasonEditor.page.render.upToDate, CloseReasonEditor.page.render.needsUpdate);
                         });
                     }, function (privilegeName, minReputation) {
-                        // Set title
-                        document.title = 'This page requires more privileges - ' + CloseReasonEditor.param.siteName;
-                        // Set content template
-                        $("#content").html(CloseReasonEditor.page.template.getError(privilegeName, minReputation));
+                        CloseReasonEditor.page.render.error(privilegeName, minReputation);
                     });
                 } catch (e) {}
             },
@@ -236,8 +220,52 @@ with_jquery(function ($) {
                 }
                 return false;
             },
+            render: {
+                edit: function (closeDialog) {
+                    // Set title
+                    document.title = 'Manage Off-Topic Close Reasons - ' + CloseReasonEditor.param.siteName;
+                    // Set content template
+                    $("#content").html(CloseReasonEditor.page.template.getEdit());
+                    // Set default reasons
+                    CloseReasonEditor.parse.closeDialog(closeDialog, function (reason) {
+                        var item = CloseReasonEditor.reason.getDefault(reason);
+                        if (!item) {
+                            CloseReasonEditor.reason.setDefault({
+                                guid: CloseReasonEditor.utility.guid(),
+                                html: reason,
+                                active: true
+                            });
+                            item = CloseReasonEditor.reason.getDefault(reason);
+                        }
+                        reason = CloseReasonEditor.page.reason.getActivatable(reason, item.active);
+                        $("div.default-close-reasons").append(reason);
+                    });
+                    CloseReasonEditor.page.defaultActiveCount.update();
+                    // Set custom reasons
+                    var items = CloseReasonEditor.data.fetch()['custom'];
+                    for (var i = 0; i < items.length; i++) {
+                        $("div.custom-close-reasons").append(CloseReasonEditor.page.reason.getEditable(items[i].guid, items[i].html));
+                    }
+                    // Add custom reason button
+                    $("#add-custom-reason").on("click", function () {
+                        $("div.custom-close-reasons").append(CloseReasonEditor.page.reason.getDisposableTextarea(CloseReasonEditor.param.reason.originalTextValue));
+                    });
+                },
+                error: function (privilegeName, minReputation) {
+                    // Set title
+                    document.title = 'This page requires more privileges - ' + CloseReasonEditor.param.siteName;
+                    // Set content template
+                    $("#content").html(CloseReasonEditor.page.template.getError(privilegeName, minReputation));
+                },
+                upToDate: function () {
+                    $('div.userscript-version-check').html('This userscript is up to date.');
+                },
+                needsUpdate: function () {
+                    $('div.userscript-version-check').html('A newer version of the userscript is available. <a href="' + CloseReasonEditor.param.url.script + '">Click here</a> to download.');
+                }
+            },
             template: {
-                getPage: function () {
+                getEdit: function () {
                     return '\
                     <div id="mainbar">\
                         <div class="subheader">\
@@ -254,7 +282,33 @@ with_jquery(function ($) {
                             <input id="add-custom-reason" type="submit" value="Add Custom Reason">\
                         </div>\
                     </div>\
-                    <div id="sidebar"></div>\
+                    ' + CloseReasonEditor.page.template.getSidebar();
+                },
+                getSidebar: function() {
+                    return '\
+                    <div id="sidebar" class="faq-page">\
+                        <!--\
+                        <div class="module newuser help-category-tree" id="toc">\
+                            <ul>\
+                                <li><a href="' + CloseReasonEditor.param.url.editPage + '">' + (location.href === CloseReasonEditor.param.url.editPage ? '<strong>Edit close reasons</strong>' : 'Edit close reasons') + '</a></li>\
+                            </ul>\
+                        </div>\
+                        -->\
+                        <div class="module legend" style="padding: 8px !important;">\
+                            <h4>Close Reason Editor</h4>\
+                            <div>version ' + CloseReasonEditor.param.version + '</div>\
+                            <p></p>\
+                            <div class="userscript-version-check">Checking for updates...</div>\
+                        </div>\
+                        <div class="module legend" style="padding: 8px !important;">\
+                            <h4>Bug / Feature Request</h4>\
+                            <div>Please head over to <a href="//stackapps.com/q/4483/20921">this post on Stack Apps</a> and file your bug report or feature request as an answer.</div>\
+                        </div>\
+                        <div class="module legend" style="padding: 8px !important;">\
+                            <h4>License</h4>\
+                            <div>This userscript is freely distributable under the terms of the <a href="//raw2.github.com/laucheukhim/close-reason-editor/master/LICENSE">MIT license</a>.</div>\
+                        </div>\
+                    </div>\
                     ';
                 },
                 getLoading: function () {
@@ -309,7 +363,9 @@ with_jquery(function ($) {
                     function getActivateButton() {
                         return CloseReasonEditor.page.template.getButton('activate').on('click', function (event) {
                             event.preventDefault();
-                            CloseReasonEditor.reason.setDefault(reason, true);
+                            var item = CloseReasonEditor.reason.getDefault(reason);
+                            item.active = true;
+                            CloseReasonEditor.reason.setDefault(item);
                             reasonHTML.find(".item-left").removeClass('deactivated').css('opacity', 1);
                             CloseReasonEditor.page.defaultActiveCount.update();
                             $(this).replaceWith(getDeactivateButton());
@@ -318,7 +374,9 @@ with_jquery(function ($) {
                     function getDeactivateButton() {
                         return CloseReasonEditor.page.template.getButton('deactivate').on('click', function (event) {
                             event.preventDefault();
-                            CloseReasonEditor.reason.setDefault(reason, false);
+                            var item = CloseReasonEditor.reason.getDefault(reason);
+                            item.active = false;
+                            CloseReasonEditor.reason.setDefault(item);
                             reasonHTML.find(".item-left").addClass('deactivated').css('opacity', 0.4);
                             CloseReasonEditor.page.defaultActiveCount.update();
                             $(this).replaceWith(getActivateButton());
@@ -334,24 +392,24 @@ with_jquery(function ($) {
                     }
                     return reasonHTML.find(".item-right").append(button).end();
                 },
-                getEditable: function (reason) {
+                getEditable: function (guid, reason) {
                     reason = CloseReasonEditor.page.reason.getStandard(reason);
                     var edit = CloseReasonEditor.page.template.getButton('edit').on('click', function (event) {
                         event.preventDefault();
-                        var item = CloseReasonEditor.reason.getCustom(CloseReasonEditor.page.getPosition(this));
-                        var reasonTextarea = CloseReasonEditor.page.reason.getTextarea(item.markdown);
+                        var item = CloseReasonEditor.reason.getCustom(guid);
+                        var reasonTextarea = CloseReasonEditor.page.reason.getTextarea(guid, item.markdown);
                         reason.replaceWith(reasonTextarea);
                     });
                     var remove = CloseReasonEditor.page.template.getButton('remove').on('click', function (event) {
                         event.preventDefault();
                         if (confirm('Are you sure you want to remove this close reason?')) {
-                            CloseReasonEditor.reason.removeCustom(CloseReasonEditor.page.getPosition(this));
+                            CloseReasonEditor.reason.removeCustom(guid);
                             reason.remove();
                         }
                     });
                     return reason.find('.item-right').append(edit).append(remove).end();
                 },
-                getTextarea: function (markdown) {
+                getTextarea: function (guid, markdown) {
                     function getNotice(length) {
                         var notice = '';
                         var difference = 0;
@@ -396,14 +454,18 @@ with_jquery(function ($) {
                         event.preventDefault();
                         var reason = textarea.val();
                         if (isReasonValid(reason)) {
-                            CloseReasonEditor.reason.setCustom(reason, CloseReasonEditor.page.getPosition(this));
-                            reasonTextarea.replaceWith(CloseReasonEditor.page.reason.getEditable(CloseReasonEditor.parse.markdown(reason)));
+                            CloseReasonEditor.reason.setCustom({
+                                guid: guid,
+                                markdown: reason,
+                                position: CloseReasonEditor.page.getPosition(this)
+                            });
+                            reasonTextarea.replaceWith(CloseReasonEditor.page.reason.getEditable(guid, CloseReasonEditor.parse.markdown(reason)));
                         }
                     });
                     var cancel = CloseReasonEditor.page.template.getButton('cancel').on('click', function (event) {
                         event.preventDefault();
-                        var custom = CloseReasonEditor.reason.getCustom(CloseReasonEditor.page.getPosition(this));
-                        var reason = CloseReasonEditor.page.reason.getEditable(CloseReasonEditor.parse.markdown(custom.markdown));
+                        var custom = CloseReasonEditor.reason.getCustom(guid);
+                        var reason = CloseReasonEditor.page.reason.getEditable(guid, CloseReasonEditor.parse.markdown(custom.markdown));
                         reasonTextarea.replaceWith(reason);
                     });
                     reasonTextarea.addClass('close-as-off-topic-pane');
@@ -415,7 +477,8 @@ with_jquery(function ($) {
                     return reasonTextarea;
                 },
                 getDisposableTextarea: function (markdown) {
-                    var reasonTextarea = CloseReasonEditor.page.reason.getTextarea(markdown);
+                    var guid = CloseReasonEditor.utility.guid();
+                    var reasonTextarea = CloseReasonEditor.page.reason.getTextarea(guid, markdown);
                     var cancel = CloseReasonEditor.page.template.getButton('cancel').on('click', function (event) {
                         event.preventDefault();
                         reasonTextarea.remove();
@@ -497,7 +560,12 @@ with_jquery(function ($) {
                 return allData !== null && typeof allData === 'object';
             },
             validateData: function (data) {
-                return data !== null && typeof data === 'object' && Object.prototype.toString.call(data['default']) === '[object Array]' && Object.prototype.toString.call(data['custom']) === '[object Array]';
+                return (
+                    data !== null &&
+                        typeof data === 'object' &&
+                        Object.prototype.toString.call(data['default']) === '[object Array]' &&
+                        Object.prototype.toString.call(data['custom']) === '[object Array]'
+                    );
             },
             fetch: function () {
                 var data = {
@@ -522,98 +590,138 @@ with_jquery(function ($) {
             }
         },
         reason: {
-            hash: function (s) {
-                return s.split("").reduce(function (a, b) {
-                    a = ((a << 5) - a) + b.charCodeAt(0);
-                    return a & a;
-                }, 0);
-            },
-            getDefault: function (reason) {
-                var hash = CloseReasonEditor.reason.hash(reason);
+            get: function (type, key, value) {
                 var data = CloseReasonEditor.data.fetch();
-                var item = data['default'];
-                for (var i = 0; i < item.length; i++) {
-                    if (item[i].hash === hash) {
-                        return item[i];
+                var items = data[type];
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i][key] === value) {
+                        return items[i];
                     }
                 }
                 return false;
             },
-            setDefault: function (reason, active) {
-                var hash = CloseReasonEditor.reason.hash(reason);
-                var item = {
-                    hash: hash,
-                    html: reason,
-                    active: active
-                };
+            update: function (type, key, item, sort) {
+                if (typeof item[key] === 'undefined') {
+                    throw new Error('Key "' + key + '" does not exist in item');
+                }
                 var data = CloseReasonEditor.data.fetch();
-                var key = false;
-                for (var i = 0; i < data['default'].length; i++) {
-                    if (data['default'][i].hash === hash) {
-                        key = i;
+                var items = data[type];
+                var internalKey = false;
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i][key] === item[key]) {
+                        internalKey = i;
                         break;
                     }
                 }
-                if (key === false) {
-                    data['default'].push(item);
+                if (internalKey === false) {
+                    items.push(item);
                 } else {
-                    data['default'][i] = item;
+                    for (var j in item) {
+                        if (item.hasOwnProperty(j)) {
+                            items[i][j] = item[j];
+                        }
+                    }
+                }
+                if (typeof sort === 'string') {
+                    items.sort(function (a, b) {
+                        return a[sort] - b[sort];
+                    });
                 }
                 CloseReasonEditor.data.save(data);
             },
-            getCustom: function (position) {
+            remove: function (type, key, value, callback) {
                 var data = CloseReasonEditor.data.fetch();
-                var item = data['custom'];
-                for (var i = 0; i < item.length; i++) {
-                    if (item[i].position === position) {
-                        return item[i];
-                    }
+                var items = data[type];
+                var i;
+                for (i = 0; i < items.length; i++) {
+                    callback(items[i]);
                 }
-                return false;
-            },
-            setCustom: function (reason, position) {
-                var html = CloseReasonEditor.parse.markdown(reason);
-                var hash = CloseReasonEditor.reason.hash(html);
-                var item = {
-                    hash: hash,
-                    markdown: reason,
-                    html: html,
-                    position: position
-                };
-                var data = CloseReasonEditor.data.fetch();
-                var key = false;
-                for (var i = 0; i < data['custom'].length; i++) {
-                    if (data['custom'][i].position === position) {
-                        key = i;
-                        break;
-                    }
-                }
-                if (key === false) {
-                    data['custom'].push(item);
-                } else {
-                    data['custom'][i] = item;
-                }
-                data['custom'].sort(function (a, b) {
-                    return a.position - b.position;
-                });
-                CloseReasonEditor.data.save(data);
-            },
-            removeCustom: function (position) {
-                var data = CloseReasonEditor.data.fetch();
-                var items = data['custom'];
-                for (var i = 0; i < items.length; i++) {
-                    if (items[i].position > position) {
-                        items[i].position--;
-                    }
-                }
-                for (var i = 0; i < items.length; i++) {
-                    if (items[i].position === position) {
+                for (i = 0; i < items.length; i++) {
+                    if (items[i][key] === value) {
                         items.splice(i, 1);
                     }
                 }
                 CloseReasonEditor.data.save(data);
+            },
+            getDefault: function (html) {
+                return CloseReasonEditor.reason.get('default', 'html', html);
+            },
+            setDefault: function (item) {
+                CloseReasonEditor.reason.update('default', 'html', item);
+            },
+            getCustom: function (guid) {
+                return CloseReasonEditor.reason.get('custom', 'guid', guid);
+            },
+            setCustom: function (item) {
+                if (typeof item.markdown === 'string') {
+                    item.html = CloseReasonEditor.parse.markdown(item.markdown);
+                }
+                CloseReasonEditor.reason.update('custom', 'guid', item, 'position');
+            },
+            removeCustom: function (guid) {
+                var position = CloseReasonEditor.reason.getCustom(guid).position;
+                CloseReasonEditor.reason.remove('custom', 'guid', guid, function(item) {
+                    if (item.position > position) {
+                        item.position--;
+                    }
+                });
+            }
+        },
+        utility: {
+            guid: function () {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+                    return v.toString(16);
+                });
+            },
+            version: {
+                upToDateCallback: function () {},
+                needsUpdateCallback: function () {},
+                check: function (upToDateCallback, needsUpdateCallback) {
+                    CloseReasonEditor.utility.version.upToDateCallback = upToDateCallback;
+                    CloseReasonEditor.utility.version.needsUpdateCallback = needsUpdateCallback;
+                    $.getScript(CloseReasonEditor.param.url.script);
+                },
+                compare: function (latestVersion) {
+                    if (latestVersion > CloseReasonEditor.param.version) {
+                        CloseReasonEditor.utility.version.needsUpdateCallback();
+                    } else {
+                        CloseReasonEditor.utility.version.upToDateCallback();
+                    }
+                }
+            }
+        },
+        compatibility: {
+            init: function () {
+                CloseReasonEditor.compatibility['v1.1'].init();
+            },
+            'v1.1': {
+                init: function() {
+                    CloseReasonEditor.compatibility['v1.1'].updateData();
+                },
+                updateData: function() {
+                    var data = CloseReasonEditor.data.fetch();
+                    function update(items) {
+                        for (var i = 0; i < items.length; i++) {
+                            if (typeof items[i].hash !== 'undefined') {
+                                delete items[i].hash;
+                            }
+                            if (typeof items[i].guid === 'undefined') {
+                                items[i].guid = CloseReasonEditor.utility.guid();
+                            }
+                        }
+                    }
+                    update(data['default']);
+                    update(data['custom']);
+                    CloseReasonEditor.data.save(data);
+                }
             }
         }
     };
-    CloseReasonEditor.init();
+    if (!window.CloseReasonEditor) {
+        window.CloseReasonEditor = CloseReasonEditor;
+        CloseReasonEditor.init();
+    } else {
+        window.CloseReasonEditor.compareVersion(CloseReasonEditor.param.version);
+    }
 });
