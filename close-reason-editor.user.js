@@ -58,7 +58,7 @@ with_jquery(function ($) {
                 hot: 380
             },
             url: {
-                script: 'http://laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js',
+                script: 'http://laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js?' + Date.now(),
                 editPage: location.protocol + '//' + location.host + '/?edit-close-reasons',
                 privileges: '/help/privileges',
                 closePrivilege: '/help/privileges/close-questions'
@@ -722,6 +722,6 @@ with_jquery(function ($) {
         window.CloseReasonEditor = CloseReasonEditor;
         CloseReasonEditor.init();
     } else {
-        window.CloseReasonEditor.compareVersion(CloseReasonEditor.param.version);
+        window.CloseReasonEditor.version.compare(CloseReasonEditor.param.version);
     }
 });
