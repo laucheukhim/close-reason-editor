@@ -722,6 +722,6 @@ with_jquery(function ($) {
         window.CloseReasonEditor = CloseReasonEditor;
         CloseReasonEditor.init();
     } else {
-        window.CloseReasonEditor.version.compare(CloseReasonEditor.param.version);
+        window.CloseReasonEditor.utility.version.compare(CloseReasonEditor.param.version);
     }
 });
