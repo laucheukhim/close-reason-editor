@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.0.3
+// @version          1.0.4
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -47,7 +47,7 @@ with_jquery(function ($) {
                     siteName = siteName.match(/ - (.*)$/)[1];
                 }
                 return siteName;
-            }),
+            })(),
             wait: 3000,
             characters: {
                 min: 30,
@@ -239,10 +239,10 @@ with_jquery(function ($) {
             template: {
                 getPage: function () {
                     return '\
-                    <div class="subheader">\
-                        <h1>Manage Off-Topic Close Reasons</h1>\
-                    </div>\
                     <div id="mainbar">\
+                        <div class="subheader">\
+                            <h1>Manage Off-Topic Close Reasons</h1>\
+                        </div>\
                         <h2 style="display: inline-block;">Default Off-Topic Close Reasons</h2>\
                         <span class="default-active-count" style="margin-left: 20px;">1 / 3 active</span>\
                         <p style="color: #999">The close reasons chosen by the site moderators.</p>\
