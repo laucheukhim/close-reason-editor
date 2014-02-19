@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.0.5
+// @version          1.0.6
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -40,9 +40,9 @@ with_jquery(function ($) {
     var CloseReasonEditor = {
         param: {
             name: 'se-close-reason-editor',
-            version: '1.0.5',
+            version: '1.0.6',
             site: location.host,
-            siteName: (function() {
+            siteName: (function () {
                 var siteName = document.title;
                 if (siteName.match(/ - (.*)$/)) {
                     siteName = siteName.match(/ - (.*)$/)[1];
@@ -87,7 +87,7 @@ with_jquery(function ($) {
         dialog: {
             init: function (closeDialog) {
                 var otherTextarea = CloseReasonEditor.parse.otherTextarea(closeDialog);
-                CloseReasonEditor.parse.closeDialog(closeDialog, function(reason) {
+                CloseReasonEditor.parse.closeDialog(closeDialog, function (reason) {
                     var listItem = $(this).parents("li").first();
                     var item = CloseReasonEditor.reason.getDefault(reason);
                     if (item && !item.active) {
@@ -105,11 +105,11 @@ with_jquery(function ($) {
                         }
                     }
                 }
-                closeDialog.find("div.close-as-off-topic-pane ul.action-list li").on("click", function() {
+                closeDialog.find("div.close-as-off-topic-pane ul.action-list li").on("click", function () {
                     if ($(this).data("markdown")) {
                         $(this).find("div.off-topic-other-comment-container").append('<textarea>' + $(this).data("markdown") + '</textarea>');
                     }
-                    $(this).siblings().each(function() {
+                    $(this).siblings().each(function () {
                         if ($(this).find("textarea").length && !$(this).find("span.text-counter").length) {
                             $(this).find("textarea").remove();
                         }
@@ -134,13 +134,13 @@ with_jquery(function ($) {
                         <input type="hidden" name="original_text" value="' + originalText + '">\
                     </div>\
                 </li>\
-                ').data("markdown", markdown).on("click", function(event) {
-                        event.preventDefault();
-                        $(this).find("input[type='radio']").prop("checked", true);
-                        $(this).parents("ul").first().find(".action-selected").removeClass("action-selected");
-                        $(this).addClass("action-selected");
-                        $("#popup-close-question").find("input[type='submit']").prop("disabled", false).removeClass("disabled-button").css("cursor", "");
-                    });
+                ').data("markdown", markdown).on("click", function (event) {
+                    event.preventDefault();
+                    $(this).find("input[type='radio']").prop("checked", true);
+                    $(this).parents("ul").first().find(".action-selected").removeClass("action-selected");
+                    $(this).addClass("action-selected");
+                    $("#popup-close-question").find("input[type='submit']").prop("disabled", false).removeClass("disabled-button").css("cursor", "");
+                });
             },
             getButton: function (name) {
                 return $('<a href="javascript:void(0)" style="margin-top: 20px; font-size: 11px;">' + name + '</a>').on("click", function (event) {
@@ -198,14 +198,28 @@ with_jquery(function ($) {
                         }
                     }
                 });
-                var success = function(element) {
+                var verify = function (result, status) {
+                    return status === 'success' && $(result).find('#pane-main').length;
+                };
+                var success = function (element) {
                     callback($(element));
                 };
-                $.get('/flags/questions/' + ids[0] + '/close/popup').done(success).fail(function () {
-                    setTimeout(function () {
-                        $.get('/flags/questions/' + ids[1] + '/close/popup').done(success);
-                    }, CloseReasonEditor.param.wait);
-                });
+                var count = 0;
+                var start = function () {
+                    if (typeof ids[count] !== 'undefined') {
+                        $.get('/flags/questions/' + ids[count++] + '/close/popup').always(function (result, status) {
+                            if (verify(result, status)) {
+                                success(result);
+                            } else {
+                                restart();
+                            }
+                        });
+                    }
+                };
+                var restart = function () {
+                    setTimeout(start, CloseReasonEditor.param.wait);
+                };
+                start();
             },
             getPosition: function (element) {
                 if (element instanceof HTMLElement) {
@@ -284,7 +298,7 @@ with_jquery(function ($) {
                     </div>\
                     ' + CloseReasonEditor.page.template.getSidebar();
                 },
-                getSidebar: function() {
+                getSidebar: function () {
                     return '\
                     <div id="sidebar" class="faq-page">\
                         <!--\
@@ -360,6 +374,7 @@ with_jquery(function ($) {
                 },
                 getActivatable: function (reason, active) {
                     var reasonHTML = CloseReasonEditor.page.reason.getStandard(reason);
+
                     function getActivateButton() {
                         return CloseReasonEditor.page.template.getButton('activate').on('click', function (event) {
                             event.preventDefault();
@@ -371,6 +386,7 @@ with_jquery(function ($) {
                             $(this).replaceWith(getDeactivateButton());
                         });
                     }
+
                     function getDeactivateButton() {
                         return CloseReasonEditor.page.template.getButton('deactivate').on('click', function (event) {
                             event.preventDefault();
@@ -428,6 +444,7 @@ with_jquery(function ($) {
                         }
                         return notice;
                     }
+
                     function getState(length) {
                         if (length <= CloseReasonEditor.param.characters.cool) {
                             return 'cool';
@@ -439,6 +456,7 @@ with_jquery(function ($) {
                             return 'supernova';
                         }
                     }
+
                     function isReasonValid(reason) {
                         var defaultReason = CloseReasonEditor.param.reason.originalTextValue;
                         var length = reason.length;
@@ -491,7 +509,7 @@ with_jquery(function ($) {
                 get: function () {
                     var active = 0;
                     var total = 0;
-                    $("div.default-close-reasons").find("div.item").each(function() {
+                    $("div.default-close-reasons").find("div.item").each(function () {
                         if (!$(this).find("div.item-left").hasClass("deactivated")) {
                             active++;
                         }
@@ -512,7 +530,7 @@ with_jquery(function ($) {
             closeDialog: function (closeDialog, callback) {
                 closeDialog.find("div.close-as-off-topic-pane ul.action-list span.action-name").each(function () {
                     var item = $(this).clone(true, true);
-                    item.find("a").each(function() {
+                    item.find("a").each(function () {
                         $(this).removeAttr("target");
                     });
                     var reason = item.html();
@@ -525,7 +543,7 @@ with_jquery(function ($) {
                 var element = $();
                 var radioValue = null;
                 var originalTextValue = null;
-                CloseReasonEditor.parse.closeDialog(closeDialog, function(reason) {
+                CloseReasonEditor.parse.closeDialog(closeDialog, function (reason) {
                     var listItem = $(this).parents("li").first();
                     if (listItem.find("textarea").length) {
                         element = listItem;
@@ -561,11 +579,7 @@ with_jquery(function ($) {
             },
             validateData: function (data) {
                 return (
-                    data !== null &&
-                        typeof data === 'object' &&
-                        Object.prototype.toString.call(data['default']) === '[object Array]' &&
-                        Object.prototype.toString.call(data['custom']) === '[object Array]'
-                    );
+                    data !== null && typeof data === 'object' && Object.prototype.toString.call(data['default']) === '[object Array]' && Object.prototype.toString.call(data['custom']) === '[object Array]');
             },
             fetch: function () {
                 var data = {
@@ -660,7 +674,7 @@ with_jquery(function ($) {
             },
             removeCustom: function (guid) {
                 var position = CloseReasonEditor.reason.getCustom(guid).position;
-                CloseReasonEditor.reason.remove('custom', 'guid', guid, function(item) {
+                CloseReasonEditor.reason.remove('custom', 'guid', guid, function (item) {
                     if (item.position > position) {
                         item.position--;
                     }
@@ -669,8 +683,9 @@ with_jquery(function ($) {
         },
         utility: {
             guid: function () {
-                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    var r = Math.random() * 16 | 0,
+                        v = c == 'x' ? r : (r & 0x3 | 0x8);
                     return v.toString(16);
                 });
             },
@@ -693,14 +708,15 @@ with_jquery(function ($) {
         },
         compatibility: {
             init: function () {
-                CloseReasonEditor.compatibility['v1.1'].init();
+                CloseReasonEditor.compatibility['v1.0.5'].init();
             },
-            'v1.1': {
-                init: function() {
-                    CloseReasonEditor.compatibility['v1.1'].updateData();
+            'v1.0.5': {
+                init: function () {
+                    CloseReasonEditor.compatibility['v1.0.5'].updateData();
                 },
-                updateData: function() {
+                updateData: function () {
                     var data = CloseReasonEditor.data.fetch();
+
                     function update(items) {
                         for (var i = 0; i < items.length; i++) {
                             if (typeof items[i].hash !== 'undefined') {
