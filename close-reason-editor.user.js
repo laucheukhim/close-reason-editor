@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.0.6
+// @version          1.0.7
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -40,7 +40,7 @@ with_jquery(function ($) {
     var CloseReasonEditor = {
         param: {
             name: 'se-close-reason-editor',
-            version: '1.0.6',
+            version: '1.0.7',
             site: location.host,
             siteName: (function () {
                 var siteName = document.title;
@@ -60,7 +60,12 @@ with_jquery(function ($) {
             url: {
                 script: 'http://laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js',
                 editPage: location.protocol + '//' + location.host + '/?edit-close-reasons',
-                privileges: '/help/privileges',
+                privileges: (function() {
+                    if (location.host !== "meta.stackexchange.com" && location.host.match(/^meta\./i)) {
+                        return location.protocol + '//' + location.host.replace(/^meta\./i, '') + '/help/privileges';
+                    }
+                    return '/help/privileges';
+                })(),
                 closePrivilege: '/help/privileges/close-questions'
             },
             reason: {
@@ -175,8 +180,8 @@ with_jquery(function ($) {
                 var html = CloseReasonEditor.page.html;
                 var reputation = CloseReasonEditor.parse.reputation(html.find("a.profile-me span.reputation").text());
                 var isModerator = html.find("div.topbar").html().indexOf("♦") !== -1;
-                $.get(CloseReasonEditor.param.url.privileges).done(function (result) {
-                    var privilegeTableRow = $(result).find("div.privilege-table-row[data-href='" + CloseReasonEditor.param.url.closePrivilege + "']");
+                function callback(privilegesPage) {
+                    var privilegeTableRow = $(privilegesPage).find("div.privilege-table-row[data-href='" + CloseReasonEditor.param.url.closePrivilege + "']");
                     var minReputation = CloseReasonEditor.parse.reputation(privilegeTableRow.find("div.rep-level").text());
                     var privilegeName = privilegeTableRow.find("div.short-description").text();
                     if (isModerator || reputation >= minReputation) {
@@ -184,7 +189,16 @@ with_jquery(function ($) {
                     } else {
                         fail(privilegeName, minReputation);
                     }
-                });
+                }
+                if (CloseReasonEditor.param.url.privileges.match(/^\//)) {
+                    $.get(CloseReasonEditor.param.url.privileges).done(function(result) {
+                        callback(result);
+                    });
+                } else {
+                    $.getJSON('http://whateverorigin.org/get?url=' + encodeURIComponent(CloseReasonEditor.param.url.privileges) + '&callback=?').done(function (data) {
+                        callback(data.contents);
+                    });
+                }
             },
             getCloseDialog: function (callback) {
                 var ids = [];
@@ -285,15 +299,17 @@ with_jquery(function ($) {
                         <div class="subheader">\
                             <h1>Manage Off-Topic Close Reasons</h1>\
                         </div>\
-                        <h2 style="display: inline-block;">Default Off-Topic Close Reasons</h2>\
-                        <span class="default-active-count" style="margin-left: 20px;">1 / 3 active</span>\
-                        <p style="color: #999">The close reasons chosen by the site moderators.</p>\
-                        <div class="default-close-reasons" style="margin-bottom: 40px;"></div>\
-                        <h2 style="display: inline-block;">Custom Off-Topic Close Reasons</h2>\
-                        <p style="color: #999">With great responsibility comes great power. Now it\'s your turn to edit these close reasons.</p>\
-                        <div class="custom-close-reasons"></div>\
-                        <div class="form-submit">\
-                            <input id="add-custom-reason" type="submit" value="Add Custom Reason">\
+                        <div style="margin-top: 20px;">\
+                            <h2 style="display: inline-block;">Default Off-Topic Close Reasons</h2>\
+                            <span class="default-active-count" style="margin-left: 20px;">1 / 3 active</span>\
+                            <p style="color: #999">The close reasons chosen by the site moderators.</p>\
+                            <div class="default-close-reasons" style="margin-bottom: 40px;"></div>\
+                            <h2 style="display: inline-block;">Custom Off-Topic Close Reasons</h2>\
+                            <p style="color: #999">With great responsibility comes great power. Now it\'s your turn to edit these close reasons.</p>\
+                            <div class="custom-close-reasons"></div>\
+                            <div class="form-submit">\
+                                <input id="add-custom-reason" type="submit" value="Add Custom Reason">\
+                            </div>\
                         </div>\
                     </div>\
                     ' + CloseReasonEditor.page.template.getSidebar();
