@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.0.7
+// @version          1.1.0
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -40,7 +40,7 @@ with_jquery(function ($) {
     var CloseReasonEditor = {
         param: {
             name: 'se-close-reason-editor',
-            version: '1.0.7',
+            version: '1.1.0',
             site: location.host,
             siteName: (function () {
                 var siteName = document.title;
@@ -91,11 +91,13 @@ with_jquery(function ($) {
         },
         dialog: {
             init: function (closeDialog) {
+                var migrationOption = CloseReasonEditor.parse.migrationOption(closeDialog);
                 var otherTextarea = CloseReasonEditor.parse.otherTextarea(closeDialog);
                 CloseReasonEditor.parse.closeDialog(closeDialog, function (reason) {
                     var listItem = $(this).parents("li").first();
                     var item = CloseReasonEditor.reason.getDefault(reason);
-                    if (item && !item.active) {
+                    var isChosenByOthers = $(this).find("span.bounty-indicator-tab").length > 0;
+                    if (item && !item.active && !isChosenByOthers) {
                         listItem.remove();
                     }
                 });
@@ -103,7 +105,9 @@ with_jquery(function ($) {
                     var items = CloseReasonEditor.data.fetch()['custom'];
                     for (var i = 0; i < items.length; i++) {
                         var listItem = CloseReasonEditor.dialog.getListItem(otherTextarea.radioValue, otherTextarea.originalTextValue, items[i].html, items[i].markdown);
-                        if (otherTextarea.element.parent().length) {
+                        if (migrationOption.element.parent().length) {
+                            listItem.insertBefore(migrationOption.element);
+                        } else if (otherTextarea.element.parent().length) {
                             listItem.insertBefore(otherTextarea.element);
                         } else {
                             closeDialog.find("div.close-as-off-topic-pane ul.action-list").append(listItem);
@@ -139,12 +143,16 @@ with_jquery(function ($) {
                         <input type="hidden" name="original_text" value="' + originalText + '">\
                     </div>\
                 </li>\
-                ').data("markdown", markdown).on("click", function (event) {
-                    event.preventDefault();
-                    $(this).find("input[type='radio']").prop("checked", true);
-                    $(this).parents("ul").first().find(".action-selected").removeClass("action-selected");
-                    $(this).addClass("action-selected");
-                    $("#popup-close-question").find("input[type='submit']").prop("disabled", false).removeClass("disabled-button").css("cursor", "");
+                ').find("a").each(function() {
+                    $(this).attr("target", "_blank");
+                }).end().data("markdown", markdown).on("click", function (event) {
+                    if (!$(event.target).is("a")) {
+                        event.preventDefault();
+                        $(this).find("input[type='radio']").prop("checked", true);
+                        $(this).parents("ul").first().find(".action-selected").removeClass("action-selected");
+                        $(this).addClass("action-selected");
+                        $("#popup-close-question").find("input[type='submit']").prop("disabled", false).removeClass("disabled-button").css("cursor", "");
+                    }
                 });
             },
             getButton: function (name) {
@@ -546,14 +554,23 @@ with_jquery(function ($) {
             closeDialog: function (closeDialog, callback) {
                 closeDialog.find("div.close-as-off-topic-pane ul.action-list span.action-name").each(function () {
                     var item = $(this).clone(true, true);
-                    item.find("a").each(function () {
-                        $(this).removeAttr("target");
-                    });
                     var reason = item.html();
                     if (!reason.match(/^Other:/)) {
                         callback.call(this, reason);
                     }
                 });
+            },
+            migrationOption: function(closeDialog) {
+                var element = $();
+                CloseReasonEditor.parse.closeDialog(closeDialog, function (reason) {
+                    var listItem = $(this).parents("li").first();
+                    if (listItem.find("input[type='radio']").data("subpane-name") === "migration") {
+                        element = listItem;
+                    }
+                });
+                return {
+                    element: element
+                };
             },
             otherTextarea: function (closeDialog) {
                 var element = $();
@@ -577,7 +594,7 @@ with_jquery(function ($) {
                 return parseInt(reputationText.replace(/[^\d]/g, ''), 10);
             },
             markdown: function (markdown) {
-                return Markdown.makeHtml(markdown).replace(/^<p>/, '').replace(/<\/p>$/, '');
+                return $(Markdown.makeHtml(markdown)).html();
             }
         },
         data: {
