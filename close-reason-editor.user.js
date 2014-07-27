@@ -58,7 +58,7 @@ with_jquery(function ($) {
                 hot: 380
             },
             url: {
-                script: 'http://laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js',
+                script: '//laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js',
                 editPage: location.protocol + '//' + location.host + '/?edit-close-reasons',
                 privileges: (function() {
                     if (location.host !== "meta.stackexchange.com" && location.host.match(/^meta\./i)) {
