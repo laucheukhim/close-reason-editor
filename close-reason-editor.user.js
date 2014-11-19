@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.1.0
+// @version          1.1.1
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -40,7 +40,7 @@ with_jquery(function ($) {
     var CloseReasonEditor = {
         param: {
             name: 'se-close-reason-editor',
-            version: '1.1.0',
+            version: '1.1.1',
             site: location.host,
             siteName: (function () {
                 var siteName = document.title;
@@ -488,7 +488,7 @@ with_jquery(function ($) {
                     }
                     var reasonTextarea = CloseReasonEditor.page.template.getItem();
                     var counter = $('<span class="text-counter ' + getState(markdown.length) + '">' + getNotice(markdown.length) + '</span>');
-                    var textarea = $('<textarea style="width: 99%;">' + markdown + '</textarea>').on('input', function () {
+                    var textarea = $('<textarea style="width: 100%; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box;">' + markdown + '</textarea>').on('input', function () {
                         var length = $(this).val().length;
                         counter.attr('class', 'text-counter ' + getState(length)).html(getNotice(length));
                     });
@@ -611,8 +611,7 @@ with_jquery(function ($) {
                 return allData !== null && typeof allData === 'object';
             },
             validateData: function (data) {
-                return (
-                    data !== null && typeof data === 'object' && Object.prototype.toString.call(data['default']) === '[object Array]' && Object.prototype.toString.call(data['custom']) === '[object Array]');
+                return data !== null && typeof data === 'object' && Object.prototype.toString.call(data['default']) === '[object Array]' && Object.prototype.toString.call(data['custom']) === '[object Array]';
             },
             fetch: function () {
                 var data = {
