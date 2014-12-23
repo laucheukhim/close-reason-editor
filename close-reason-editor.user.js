@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.1.1
+// @version          1.1.2
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -40,7 +40,7 @@ with_jquery(function ($) {
     var CloseReasonEditor = {
         param: {
             name: 'se-close-reason-editor',
-            version: '1.1.1',
+            version: '1.1.2',
             site: location.host,
             siteName: (function () {
                 var siteName = document.title;
@@ -284,7 +284,9 @@ with_jquery(function ($) {
                     }
                     // Add custom reason button
                     $("#add-custom-reason").on("click", function () {
-                        $("div.custom-close-reasons").append(CloseReasonEditor.page.reason.getDisposableTextarea(CloseReasonEditor.param.reason.originalTextValue));
+                        var reasonTextarea = CloseReasonEditor.page.reason.getDisposableTextarea(CloseReasonEditor.param.reason.originalTextValue);
+                        $("div.custom-close-reasons").append(reasonTextarea);
+                        CloseReasonEditor.utility.setCaretPosition(reasonTextarea.find("textarea").get(0), reasonTextarea.find("textarea").val().length);
                     });
                 },
                 error: function (privilegeName, minReputation) {
@@ -439,6 +441,7 @@ with_jquery(function ($) {
                         var item = CloseReasonEditor.reason.getCustom(guid);
                         var reasonTextarea = CloseReasonEditor.page.reason.getTextarea(guid, item.markdown);
                         reason.replaceWith(reasonTextarea);
+                        CloseReasonEditor.utility.setCaretPosition(reasonTextarea.find("textarea").get(0), reasonTextarea.find("textarea").val().length);
                     });
                     var remove = CloseReasonEditor.page.template.getButton('remove').on('click', function (event) {
                         event.preventDefault();
@@ -554,7 +557,7 @@ with_jquery(function ($) {
             closeDialog: function (closeDialog, callback) {
                 closeDialog.find("div.close-as-off-topic-pane ul.action-list span.action-name").each(function () {
                     var item = $(this).clone(true, true);
-                    var reason = item.html();
+                    var reason = item.find("a").attr("target", "_blank").end().html();
                     if (!reason.match(/^Other:/)) {
                         callback.call(this, reason);
                     }
@@ -735,6 +738,20 @@ with_jquery(function ($) {
                     } else {
                         CloseReasonEditor.utility.version.upToDateCallback();
                     }
+                }
+            },
+            setCaretPosition: function (element, position) {
+                if (document.selection) {
+                    element.focus();
+                    var selection = document.selection.createRange();
+                    selection.moveStart('character', -element.value.length);
+                    selection.moveStart('character', position);
+                    selection.moveEnd('character', 0);
+                    selection.select();
+                } else if (element.selectionStart || element.selectionStart == '0') {
+                    element.selectionStart = position;
+                    element.selectionEnd = position;
+                    element.focus();
                 }
             }
         },
