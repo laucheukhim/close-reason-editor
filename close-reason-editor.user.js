@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.1.2
+// @version          1.1.3
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -40,7 +40,7 @@ with_jquery(function ($) {
     var CloseReasonEditor = {
         param: {
             name: 'se-close-reason-editor',
-            version: '1.1.2',
+            version: '1.1.3',
             site: location.host,
             siteName: (function () {
                 var siteName = document.title;
@@ -114,7 +114,10 @@ with_jquery(function ($) {
                         }
                     }
                 }
-                closeDialog.find("div.close-as-off-topic-pane ul.action-list li").on("click", function () {
+                closeDialog.find("div.close-as-off-topic-pane ul.action-list li").on("click", function (event) {
+                    if ($(event.target).closest("input[type='radio']").length) {
+                        $(this).closest("ul").find(".action-selected").not(this).removeClass("action-selected");
+                    }
                     if ($(this).data("markdown")) {
                         $(this).find("div.off-topic-other-comment-container").append('<textarea>' + $(this).data("markdown") + '</textarea>');
                     }
@@ -145,12 +148,9 @@ with_jquery(function ($) {
                 </li>\
                 ').find("a").each(function() {
                     $(this).attr("target", "_blank");
-                }).end().data("markdown", markdown).on("click", function (event) {
+                }).end().data("markdown", markdown).on("click", ".action-name, input[type='radio']", function (event) {
                     if (!$(event.target).is("a")) {
-                        event.preventDefault();
-                        $(this).find("input[type='radio']").prop("checked", true);
-                        $(this).parents("ul").first().find(".action-selected").removeClass("action-selected");
-                        $(this).addClass("action-selected");
+                        $(this).closest("li").addClass("action-selected");
                         $("#popup-close-question").find("input[type='submit']").prop("disabled", false).removeClass("disabled-button").css("cursor", "");
                     }
                 });
