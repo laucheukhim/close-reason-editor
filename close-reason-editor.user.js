@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.1.3
+// @version          1.1.4
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -33,14 +33,14 @@ with_jquery(function ($) {
     if (!(window.StackExchange && StackExchange.ready)) return;
     if (!window.localStorage) return;
     if (!(window.Markdown && Markdown.makeHtml)) {
-        $.getScript('//cdn.sstatic.net/Js/wmd.en.js?v=849f408083f3').done(function () {
+        $.getScript("//cdn.sstatic.net/Js/wmd.en.js").done(function () {
             Markdown.Converter();
         });
     }
     var CloseReasonEditor = {
         param: {
-            name: 'se-close-reason-editor',
-            version: '1.1.3',
+            name: "se-close-reason-editor",
+            version: "1.1.4",
             site: location.host,
             siteName: (function () {
                 var siteName = document.title;
@@ -58,34 +58,37 @@ with_jquery(function ($) {
                 hot: 380
             },
             url: {
-                script: '//laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js',
-                editPage: location.protocol + '//' + location.host + '/?edit-close-reasons',
+                script: "//laucheukhim.github.io/close-reason-editor/close-reason-editor.user.js",
+                editPage: location.protocol + "//" + location.host + "/?edit-close-reasons",
                 privileges: (function() {
                     if (location.host !== "meta.stackexchange.com" && location.host.match(/^meta\./i)) {
-                        return location.protocol + '//' + location.host.replace(/^meta\./i, '') + '/help/privileges';
+                        return location.protocol + "//" + location.host.replace(/^meta\./i, "") + "/help/privileges";
                     }
-                    return '/help/privileges';
+                    return "/help/privileges";
                 })(),
-                closePrivilege: '/help/privileges/close-questions'
+                closePrivilege: "/help/privileges/close-questions"
             },
             reason: {
-                originalTextValue: 'This question appears to be off-topic because it is about'
+                originalTextValue: "I'm voting to close this question as off-topic because "
             }
         },
         init: function () {
             CloseReasonEditor.compatibility.init();
             switch (location.href) {
                 case CloseReasonEditor.param.url.editPage:
-                    CloseReasonEditor.page.init('edit');
+                    CloseReasonEditor.page.init("edit");
                     break;
             }
             $(document).ajaxSuccess(function (event, xhr, settings) {
                 try {
-                    $(xhr.responseText).each(function () {
-                        if (this.id && this.id === "popup-close-question") {
-                            CloseReasonEditor.dialog.init($("#popup-close-question"));
-                        }
-                    });
+                    var contentType = xhr.getResponseHeader("content-type") || "";
+                    if (contentType.indexOf("html") !== -1) {
+                        $(xhr.responseText).each(function () {
+                            if (this.id && this.id === "popup-close-question") {
+                                CloseReasonEditor.dialog.init($("#popup-close-question"));
+                            }
+                        });
+                    }
                 } catch (e) {}
             });
         },
@@ -102,7 +105,7 @@ with_jquery(function ($) {
                     }
                 });
                 if (otherTextarea.radioValue) {
-                    var items = CloseReasonEditor.data.fetch()['custom'];
+                    var items = CloseReasonEditor.data.fetch()["custom"];
                     for (var i = 0; i < items.length; i++) {
                         var listItem = CloseReasonEditor.dialog.getListItem(otherTextarea.radioValue, otherTextarea.originalTextValue, items[i].html, items[i].markdown);
                         if (migrationOption.element.parent().length) {
@@ -128,10 +131,10 @@ with_jquery(function ($) {
                     });
                 });
                 var button;
-                if (closeDialog.html().indexOf('edit these reasons') === -1) {
-                    button = CloseReasonEditor.dialog.getButton('edit these reasons');
+                if (closeDialog.html().indexOf("edit these reasons") === -1) {
+                    button = CloseReasonEditor.dialog.getButton("edit these reasons");
                 } else {
-                    button = CloseReasonEditor.dialog.getButton('edit these reasons with userscript');
+                    button = CloseReasonEditor.dialog.getButton("edit these reasons with userscript");
                 }
                 closeDialog.find("div.close-as-off-topic-pane").append(button);
             },
@@ -173,7 +176,7 @@ with_jquery(function ($) {
                             // Set original text value
                             CloseReasonEditor.param.reason.originalTextValue = CloseReasonEditor.parse.otherTextarea(closeDialog).originalTextValue;
                             switch (pageType) {
-                                case 'edit':
+                                case "edit":
                                     CloseReasonEditor.page.render.edit(closeDialog);
                                     break;
                             }
@@ -203,7 +206,7 @@ with_jquery(function ($) {
                         callback(result);
                     });
                 } else {
-                    $.getJSON('http://whateverorigin.org/get?url=' + encodeURIComponent(CloseReasonEditor.param.url.privileges) + '&callback=?').done(function (data) {
+                    $.getJSON("http://whateverorigin.org/get?url=" + encodeURIComponent(CloseReasonEditor.param.url.privileges) + "&callback=?").done(function (data) {
                         callback(data.contents);
                     });
                 }
@@ -221,15 +224,15 @@ with_jquery(function ($) {
                     }
                 });
                 var verify = function (result, status) {
-                    return status === 'success' && $(result).find('#pane-main').length;
+                    return status === "success" && $(result).find("#pane-main").length;
                 };
                 var success = function (element) {
                     callback($(element));
                 };
                 var count = 0;
                 var start = function () {
-                    if (typeof ids[count] !== 'undefined') {
-                        $.get('/flags/questions/' + ids[count++] + '/close/popup').always(function (result, status) {
+                    if (typeof ids[count] !== "undefined") {
+                        $.get("/flags/questions/" + ids[count++] + "/close/popup").always(function (result, status) {
                             if (verify(result, status)) {
                                 success(result);
                             } else {
@@ -259,7 +262,7 @@ with_jquery(function ($) {
             render: {
                 edit: function (closeDialog) {
                     // Set title
-                    document.title = 'Manage Off-Topic Close Reasons - ' + CloseReasonEditor.param.siteName;
+                    document.title = "Manage Off-Topic Close Reasons - " + CloseReasonEditor.param.siteName;
                     // Set content template
                     $("#content").html(CloseReasonEditor.page.template.getEdit());
                     // Set default reasons
@@ -278,7 +281,7 @@ with_jquery(function ($) {
                     });
                     CloseReasonEditor.page.defaultActiveCount.update();
                     // Set custom reasons
-                    var items = CloseReasonEditor.data.fetch()['custom'];
+                    var items = CloseReasonEditor.data.fetch()["custom"];
                     for (var i = 0; i < items.length; i++) {
                         $("div.custom-close-reasons").append(CloseReasonEditor.page.reason.getEditable(items[i].guid, items[i].html));
                     }
@@ -291,15 +294,15 @@ with_jquery(function ($) {
                 },
                 error: function (privilegeName, minReputation) {
                     // Set title
-                    document.title = 'This page requires more privileges - ' + CloseReasonEditor.param.siteName;
+                    document.title = "This page requires more privileges - " + CloseReasonEditor.param.siteName;
                     // Set content template
                     $("#content").html(CloseReasonEditor.page.template.getError(privilegeName, minReputation));
                 },
                 upToDate: function () {
-                    $('div.userscript-version-check').html('This userscript is up to date.');
+                    $("div.userscript-version-check").html("This userscript is up to date.");
                 },
                 needsUpdate: function () {
-                    $('div.userscript-version-check').html('A newer version of the userscript is available. <a href="' + CloseReasonEditor.param.url.script + '">Click here</a> to download.');
+                    $("div.userscript-version-check").html('A newer version of the userscript is available. <a href="' + CloseReasonEditor.param.url.script + '">Click here</a> to download.');
                 }
             },
             template: {
@@ -394,108 +397,108 @@ with_jquery(function ($) {
             },
             reason: {
                 getStandard: function (reason) {
-                    reason = $('<div>' + reason + '</div>').find('span.bounty-indicator-tab').remove().end().html();
+                    reason = $('<div>' + reason + '</div>').find("span.bounty-indicator-tab").remove().end().html();
                     reason = '<blockquote><p>' + reason + '</p></blockquote>';
-                    return CloseReasonEditor.page.template.getItem().find('.item-left').append(reason).end();
+                    return CloseReasonEditor.page.template.getItem().find(".item-left").append(reason).end();
                 },
                 getActivatable: function (reason, active) {
                     var reasonHTML = CloseReasonEditor.page.reason.getStandard(reason);
 
                     function getActivateButton() {
-                        return CloseReasonEditor.page.template.getButton('activate').on('click', function (event) {
+                        return CloseReasonEditor.page.template.getButton("activate").on("click", function (event) {
                             event.preventDefault();
                             var item = CloseReasonEditor.reason.getDefault(reason);
                             item.active = true;
                             CloseReasonEditor.reason.setDefault(item);
-                            reasonHTML.find(".item-left").removeClass('deactivated').css('opacity', 1);
+                            reasonHTML.find(".item-left").removeClass("deactivated").css("opacity", 1);
                             CloseReasonEditor.page.defaultActiveCount.update();
                             $(this).replaceWith(getDeactivateButton());
                         });
                     }
 
                     function getDeactivateButton() {
-                        return CloseReasonEditor.page.template.getButton('deactivate').on('click', function (event) {
+                        return CloseReasonEditor.page.template.getButton("deactivate").on("click", function (event) {
                             event.preventDefault();
                             var item = CloseReasonEditor.reason.getDefault(reason);
                             item.active = false;
                             CloseReasonEditor.reason.setDefault(item);
-                            reasonHTML.find(".item-left").addClass('deactivated').css('opacity', 0.4);
+                            reasonHTML.find(".item-left").addClass("deactivated").css("opacity", 0.4);
                             CloseReasonEditor.page.defaultActiveCount.update();
                             $(this).replaceWith(getActivateButton());
                         });
                     }
                     var button;
                     if (active) {
-                        reasonHTML.find(".item-left").css('opacity', 1);
+                        reasonHTML.find(".item-left").css("opacity", 1);
                         button = getDeactivateButton();
                     } else {
-                        reasonHTML.find(".item-left").addClass('deactivated').css('opacity', 0.4);
+                        reasonHTML.find(".item-left").addClass("deactivated").css("opacity", 0.4);
                         button = getActivateButton();
                     }
                     return reasonHTML.find(".item-right").append(button).end();
                 },
                 getEditable: function (guid, reason) {
                     reason = CloseReasonEditor.page.reason.getStandard(reason);
-                    var edit = CloseReasonEditor.page.template.getButton('edit').on('click', function (event) {
+                    var edit = CloseReasonEditor.page.template.getButton("edit").on("click", function (event) {
                         event.preventDefault();
                         var item = CloseReasonEditor.reason.getCustom(guid);
                         var reasonTextarea = CloseReasonEditor.page.reason.getTextarea(guid, item.markdown);
                         reason.replaceWith(reasonTextarea);
                         CloseReasonEditor.utility.setCaretPosition(reasonTextarea.find("textarea").get(0), reasonTextarea.find("textarea").val().length);
                     });
-                    var remove = CloseReasonEditor.page.template.getButton('remove').on('click', function (event) {
+                    var remove = CloseReasonEditor.page.template.getButton("remove").on("click", function (event) {
                         event.preventDefault();
-                        if (confirm('Are you sure you want to remove this close reason?')) {
+                        if (confirm("Are you sure you want to remove this close reason?")) {
                             CloseReasonEditor.reason.removeCustom(guid);
                             reason.remove();
                         }
                     });
-                    return reason.find('.item-right').append(edit).append(remove).end();
+                    return reason.find(".item-right").append(edit).append(remove).end();
                 },
                 getTextarea: function (guid, markdown) {
                     function getNotice(length) {
-                        var notice = '';
+                        var notice = "";
                         var difference = 0;
                         if (length === 0) {
                             difference = CloseReasonEditor.param.characters.min - length;
-                            notice = 'enter at least ' + difference + ' character' + (difference === 1 ? '' : 's');
+                            notice = "enter at least " + difference + " character" + (difference === 1 ? "" : "s");
                         } else if (length < CloseReasonEditor.param.characters.min) {
                             difference = CloseReasonEditor.param.characters.min - length;
-                            notice = difference + ' more to go...';
+                            notice = difference + " more to go...";
                         } else if (length <= CloseReasonEditor.param.characters.max) {
                             difference = CloseReasonEditor.param.characters.max - length;
-                            notice = difference + ' character' + (difference === 1 ? '' : 's') + ' left';
+                            notice = difference + " character" + (difference === 1 ? "" : "s") + " left";
                         } else {
                             difference = length - CloseReasonEditor.param.characters.max;
-                            notice = 'too long by ' + difference + ' character' + (difference === 1 ? '' : 's');
+                            notice = "too long by " + difference + " character" + (difference === 1 ? "" : "s");
                         }
                         return notice;
                     }
 
                     function getState(length) {
                         if (length <= CloseReasonEditor.param.characters.cool) {
-                            return 'cool';
+                            return "cool";
                         } else if (length <= CloseReasonEditor.param.characters.warm) {
-                            return 'warm';
+                            return "warm";
                         } else if (length <= CloseReasonEditor.param.characters.hot) {
-                            return 'hot';
+                            return "hot";
                         } else {
-                            return 'supernova';
+                            return "supernova";
                         }
                     }
 
                     function isReasonValid(reason) {
                         var defaultReason = CloseReasonEditor.param.reason.originalTextValue;
                         var length = reason.length;
-                        return reason.trim() !== defaultReason && length >= CloseReasonEditor.param.characters.min && length <= CloseReasonEditor.param.characters.max;
+                        return reason.trim() !== defaultReason.trim() && length >= CloseReasonEditor.param.characters.min && length <= CloseReasonEditor.param.characters.max;
                     }
                     var reasonTextarea = CloseReasonEditor.page.template.getItem();
                     var counter = $('<span class="text-counter ' + getState(markdown.length) + '">' + getNotice(markdown.length) + '</span>');
-                    var textarea = $('<textarea style="width: 100%; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box;">' + markdown + '</textarea>').on('input', function () {
+                    var textarea = $('<textarea style="width: 100%; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box;">' + markdown + '</textarea>').on("input", function () {
                         var length = $(this).val().length;
-                        counter.attr('class', 'text-counter ' + getState(length)).html(getNotice(length));
+                        counter.attr("class", "text-counter " + getState(length)).html(getNotice(length));
                     });
-                    var done = CloseReasonEditor.page.template.getButton('done').on('click', function (event) {
+                    var done = CloseReasonEditor.page.template.getButton("done").on("click", function (event) {
                         event.preventDefault();
                         var reason = textarea.val();
                         if (isReasonValid(reason)) {
@@ -507,24 +510,24 @@ with_jquery(function ($) {
                             reasonTextarea.replaceWith(CloseReasonEditor.page.reason.getEditable(guid, CloseReasonEditor.parse.markdown(reason)));
                         }
                     });
-                    var cancel = CloseReasonEditor.page.template.getButton('cancel').on('click', function (event) {
+                    var cancel = CloseReasonEditor.page.template.getButton("cancel").on("click", function (event) {
                         event.preventDefault();
                         var custom = CloseReasonEditor.reason.getCustom(guid);
                         var reason = CloseReasonEditor.page.reason.getEditable(guid, CloseReasonEditor.parse.markdown(custom.markdown));
                         reasonTextarea.replaceWith(reason);
                     });
-                    reasonTextarea.addClass('close-as-off-topic-pane');
-                    reasonTextarea.addClass('close-as-off-topic-pane').find('.item-left').addClass('off-topic-other-comment-container').css({
+                    reasonTextarea.addClass("close-as-off-topic-pane");
+                    reasonTextarea.addClass("close-as-off-topic-pane").find(".item-left").addClass("off-topic-other-comment-container").css({
                         display: "block",
                         marginTop: 0
                     }).append(textarea).append(counter);
-                    reasonTextarea.find('.item-right').append(done).append(cancel);
+                    reasonTextarea.find(".item-right").append(done).append(cancel);
                     return reasonTextarea;
                 },
                 getDisposableTextarea: function (markdown) {
                     var guid = CloseReasonEditor.utility.guid();
                     var reasonTextarea = CloseReasonEditor.page.reason.getTextarea(guid, markdown);
-                    var cancel = CloseReasonEditor.page.template.getButton('cancel').on('click', function (event) {
+                    var cancel = CloseReasonEditor.page.template.getButton("cancel").on("click", function (event) {
                         event.preventDefault();
                         reasonTextarea.remove();
                     });
@@ -549,7 +552,7 @@ with_jquery(function ($) {
                 },
                 update: function () {
                     var count = CloseReasonEditor.page.defaultActiveCount.get();
-                    $(".default-active-count").html(count.active + ' / ' + count.total + ' active');
+                    $(".default-active-count").html(count.active + " / " + count.total + " active");
                 }
             }
         },
@@ -594,7 +597,7 @@ with_jquery(function ($) {
                 };
             },
             reputation: function (reputationText) {
-                return parseInt(reputationText.replace(/[^\d]/g, ''), 10);
+                return parseInt(reputationText.replace(/[^\d]/g, ""), 10);
             },
             markdown: function (markdown) {
                 return $(Markdown.makeHtml(markdown)).html();
@@ -605,21 +608,21 @@ with_jquery(function ($) {
                 return JSON.parse(localStorage.getItem(CloseReasonEditor.param.name));
             },
             setStorage: function (data) {
-                if (typeof data === 'undefined') {
+                if (typeof data === "undefined") {
                     data = null;
                 }
                 localStorage.setItem(CloseReasonEditor.param.name, JSON.stringify(data));
             },
             validateAllData: function (allData) {
-                return allData !== null && typeof allData === 'object';
+                return allData !== null && typeof allData === "object";
             },
             validateData: function (data) {
-                return data !== null && typeof data === 'object' && Object.prototype.toString.call(data['default']) === '[object Array]' && Object.prototype.toString.call(data['custom']) === '[object Array]';
+                return data !== null && typeof data === "object" && Object.prototype.toString.call(data["default"]) === "[object Array]" && Object.prototype.toString.call(data["custom"]) === "[object Array]";
             },
             fetch: function () {
                 var data = {
-                    'default': [],
-                    'custom': []
+                    "default": [],
+                    "custom": []
                 };
                 var allData = CloseReasonEditor.data.getStorage();
                 if (CloseReasonEditor.data.validateAllData(allData) && CloseReasonEditor.data.validateData(allData[CloseReasonEditor.param.site])) {
@@ -650,7 +653,7 @@ with_jquery(function ($) {
                 return false;
             },
             update: function (type, key, item, sort) {
-                if (typeof item[key] === 'undefined') {
+                if (typeof item[key] === "undefined") {
                     throw new Error('Key "' + key + '" does not exist in item');
                 }
                 var data = CloseReasonEditor.data.fetch();
@@ -671,7 +674,7 @@ with_jquery(function ($) {
                         }
                     }
                 }
-                if (typeof sort === 'string') {
+                if (typeof sort === "string") {
                     items.sort(function (a, b) {
                         return a[sort] - b[sort];
                     });
@@ -693,23 +696,23 @@ with_jquery(function ($) {
                 CloseReasonEditor.data.save(data);
             },
             getDefault: function (html) {
-                return CloseReasonEditor.reason.get('default', 'html', html);
+                return CloseReasonEditor.reason.get("default", "html", html);
             },
             setDefault: function (item) {
-                CloseReasonEditor.reason.update('default', 'html', item);
+                CloseReasonEditor.reason.update("default", "html", item);
             },
             getCustom: function (guid) {
-                return CloseReasonEditor.reason.get('custom', 'guid', guid);
+                return CloseReasonEditor.reason.get("custom", "guid", guid);
             },
             setCustom: function (item) {
-                if (typeof item.markdown === 'string') {
+                if (typeof item.markdown === "string") {
                     item.html = CloseReasonEditor.parse.markdown(item.markdown);
                 }
-                CloseReasonEditor.reason.update('custom', 'guid', item, 'position');
+                CloseReasonEditor.reason.update("custom", "guid", item, "position");
             },
             removeCustom: function (guid) {
                 var position = CloseReasonEditor.reason.getCustom(guid).position;
-                CloseReasonEditor.reason.remove('custom', 'guid', guid, function (item) {
+                CloseReasonEditor.reason.remove("custom", "guid", guid, function (item) {
                     if (item.position > position) {
                         item.position--;
                     }
@@ -718,9 +721,9 @@ with_jquery(function ($) {
         },
         utility: {
             guid: function () {
-                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
                     var r = Math.random() * 16 | 0,
-                        v = c == 'x' ? r : (r & 0x3 | 0x8);
+                        v = c == "x" ? r : (r & 0x3 | 0x8);
                     return v.toString(16);
                 });
             },
@@ -730,7 +733,7 @@ with_jquery(function ($) {
                 check: function (upToDateCallback, needsUpdateCallback) {
                     CloseReasonEditor.utility.version.upToDateCallback = upToDateCallback;
                     CloseReasonEditor.utility.version.needsUpdateCallback = needsUpdateCallback;
-                    $.getScript(CloseReasonEditor.param.url.script + '?' + Date.now());
+                    $.getScript(CloseReasonEditor.param.url.script + "?" + Date.now());
                 },
                 compare: function (latestVersion) {
                     if (latestVersion > CloseReasonEditor.param.version) {
@@ -744,11 +747,11 @@ with_jquery(function ($) {
                 if (document.selection) {
                     element.focus();
                     var selection = document.selection.createRange();
-                    selection.moveStart('character', -element.value.length);
-                    selection.moveStart('character', position);
-                    selection.moveEnd('character', 0);
+                    selection.moveStart("character", -element.value.length);
+                    selection.moveStart("character", position);
+                    selection.moveEnd("character", 0);
                     selection.select();
-                } else if (element.selectionStart || element.selectionStart == '0') {
+                } else if (element.selectionStart || element.selectionStart == "0") {
                     element.selectionStart = position;
                     element.selectionEnd = position;
                     element.focus();
@@ -757,27 +760,27 @@ with_jquery(function ($) {
         },
         compatibility: {
             init: function () {
-                CloseReasonEditor.compatibility['v1.0.5'].init();
+                CloseReasonEditor.compatibility["v1.0.5"].init();
             },
-            'v1.0.5': {
+            "v1.0.5": {
                 init: function () {
-                    CloseReasonEditor.compatibility['v1.0.5'].updateData();
+                    CloseReasonEditor.compatibility["v1.0.5"].updateData();
                 },
                 updateData: function () {
                     var data = CloseReasonEditor.data.fetch();
 
                     function update(items) {
                         for (var i = 0; i < items.length; i++) {
-                            if (typeof items[i].hash !== 'undefined') {
+                            if (typeof items[i].hash !== "undefined") {
                                 delete items[i].hash;
                             }
-                            if (typeof items[i].guid === 'undefined') {
+                            if (typeof items[i].guid === "undefined") {
                                 items[i].guid = CloseReasonEditor.utility.guid();
                             }
                         }
                     }
-                    update(data['default']);
-                    update(data['custom']);
+                    update(data["default"]);
+                    update(data["custom"]);
                     CloseReasonEditor.data.save(data);
                 }
             }
