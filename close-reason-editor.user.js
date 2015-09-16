@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.1.4
+// @version          1.1.5
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -32,15 +32,10 @@ function with_jquery(f) {
 with_jquery(function ($) {
     if (!(window.StackExchange && StackExchange.ready)) return;
     if (!window.localStorage) return;
-    if (!(window.Markdown && Markdown.makeHtml)) {
-        $.getScript("//cdn.sstatic.net/Js/wmd.en.js").done(function () {
-            Markdown.Converter();
-        });
-    }
     var CloseReasonEditor = {
         param: {
             name: "se-close-reason-editor",
-            version: "1.1.4",
+            version: "1.1.5",
             site: location.host,
             siteName: (function () {
                 var siteName = document.title;
@@ -168,6 +163,7 @@ with_jquery(function ($) {
         page: {
             html: $(),
             init: function (pageType) {
+                CloseReasonEditor.page.loadMarkdown();
                 CloseReasonEditor.page.html = $("html").clone(true, true);
                 $("#content").html(CloseReasonEditor.page.template.getLoading());
                 try {
@@ -187,14 +183,21 @@ with_jquery(function ($) {
                     });
                 } catch (e) {}
             },
+            loadMarkdown: function () {
+                if (!window.Markdown) {
+                    $.getScript("//cdn.sstatic.net/Js/wmd.en.js").done(function () {
+                        Markdown.Converter();
+                    });
+                }
+            },
             checkReputation: function (success, fail) {
                 var html = CloseReasonEditor.page.html;
                 var reputation = CloseReasonEditor.parse.reputation(html.find("a.profile-me span.reputation").text());
                 var isModerator = html.find("div.topbar").html().indexOf("♦") !== -1;
                 function callback(privilegesPage) {
-                    var privilegeTableRow = $(privilegesPage).find("div.privilege-table-row[data-href='" + CloseReasonEditor.param.url.closePrivilege + "']");
+                    var privilegeTableRow = $(privilegesPage).find("a[href='" + CloseReasonEditor.param.url.closePrivilege + "'] div.privilege-table-row");
                     var minReputation = CloseReasonEditor.parse.reputation(privilegeTableRow.find("div.rep-level").text());
-                    var privilegeName = privilegeTableRow.find("div.short-description").text();
+                    var privilegeName = privilegeTableRow.find("div.short-description").text().trim();
                     if (isModerator || reputation >= minReputation) {
                         success();
                     } else {
