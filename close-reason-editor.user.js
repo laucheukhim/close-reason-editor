@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.1.5
+// @version          1.1.6
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -35,7 +35,7 @@ with_jquery(function ($) {
     var CloseReasonEditor = {
         param: {
             name: "se-close-reason-editor",
-            version: "1.1.5",
+            version: "1.1.6",
             site: location.host,
             siteName: (function () {
                 var siteName = document.title;
@@ -181,7 +181,9 @@ with_jquery(function ($) {
                     }, function (privilegeName, minReputation) {
                         CloseReasonEditor.page.render.error(privilegeName, minReputation);
                     });
-                } catch (e) {}
+                } catch (e) {
+                    console.error(e);
+                }
             },
             loadMarkdown: function () {
                 if (!window.Markdown) {
@@ -192,8 +194,8 @@ with_jquery(function ($) {
             },
             checkReputation: function (success, fail) {
                 var html = CloseReasonEditor.page.html;
-                var reputation = CloseReasonEditor.parse.reputation(html.find("a.profile-me span.reputation").text());
-                var isModerator = html.find("div.topbar").html().indexOf("♦") !== -1;
+                var reputation = CloseReasonEditor.parse.reputation(html.find(".-rep").text());
+                var isModerator = html.find(".top-bar").html().indexOf("♦") !== -1;
                 function callback(privilegesPage) {
                     var privilegeTableRow = $(privilegesPage).find("a[href='" + CloseReasonEditor.param.url.closePrivilege + "'] div.privilege-table-row");
                     var minReputation = CloseReasonEditor.parse.reputation(privilegeTableRow.find("div.rep-level").text());
