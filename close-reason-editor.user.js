@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name             SE-Close-Reason-Editor
 // @namespace        CloseReasonEditor
-// @version          1.1.6
+// @version          1.1.7
 // @description      Custom off-topic close reasons for non-moderators.
 // @include          http://*stackoverflow.com/*
 // @include          https://*stackoverflow.com/*
@@ -35,7 +35,7 @@ with_jquery(function ($) {
     var CloseReasonEditor = {
         param: {
             name: "se-close-reason-editor",
-            version: "1.1.6",
+            version: "1.1.7",
             site: location.host,
             siteName: (function () {
                 var siteName = document.title;
@@ -605,7 +605,23 @@ with_jquery(function ($) {
                 return parseInt(reputationText.replace(/[^\d]/g, ""), 10);
             },
             markdown: function (markdown) {
-                return $(Markdown.makeHtml(markdown)).html();
+                var entityMap = {
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#39;",
+                    "/": "&#x2F;",
+                    "`": "&#x60;",
+                    "=": "&#x3D;"
+                };
+                function escapeHTML (string) {
+                    return String(string).replace(/[&<>"'`=\/]/g, function (s) {
+                        return entityMap[s];
+                    });
+                }
+                var html = Markdown.makeHtml(markdown).replace(/^<p>/g, '').replace(/<\/p>$/g, '');
+                return escapeHTML(html);
             }
         },
         data: {
