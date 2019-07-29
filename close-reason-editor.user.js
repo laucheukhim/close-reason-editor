@@ -620,8 +620,7 @@ with_jquery(function ($) {
                         return entityMap[s];
                     });
                 }
-                var html = Markdown.makeHtml(markdown).replace(/^<p>/g, '').replace(/<\/p>$/g, '');
-                return escapeHTML(html);
+                return $(Markdown.makeHtml(escapeHTML(markdown))).html();
             }
         },
         data: {
